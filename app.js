@@ -1,7 +1,7 @@
 const logger = require("morgan");
 const express = require("express");
 const mongoose = require("mongoose");
-
+const cors = require("cors");
 
 const authRouter = require("./routes/auth.route");
 
@@ -17,6 +17,7 @@ mongoose
   .catch((err) => console.log(err))
   .then(() => console.log("Connected To MongoDB"));
 
+app.use(cors())
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
