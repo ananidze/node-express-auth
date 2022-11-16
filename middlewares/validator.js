@@ -35,12 +35,11 @@ exports.validateLogin = [
 ]
 
 exports.validateRefreshToken = [
-  check("refreshToken").isLength({ min: 10 }).withMessage("invalid refresh token"),
+  check("refreshToken").isString().withMessage("Unauthorized"),
   (req, res, next) => {
     const errors = validationResult(req);
-    console.log(req.body)
     if (!errors.isEmpty())
-      return res.status(422).json({ errors: errors.array() });
+      return res.status(401).json({ errors: errors.array() });
     next();
   },
 ]

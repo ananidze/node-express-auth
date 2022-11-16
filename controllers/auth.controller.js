@@ -78,7 +78,6 @@ exports.refreshToken = async (req, res) => {
         })
 
         await user.updateOne({ refreshToken: newRefreshToken });
-
         return res.status(200).json({ accessToken, refreshToken });
 
     } catch (error) {
