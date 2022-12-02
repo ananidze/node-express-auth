@@ -2,7 +2,7 @@ const logger = require("morgan");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-
+const bodyParser = require('body-parser')
 const authRouter = require("./routes/auth.route");
 
 require("dotenv").config();
@@ -18,6 +18,7 @@ mongoose
   .then(() => console.log("Connected To MongoDB"));
 
 app.use(cors())
+app.use(bodyParser.json({type:"application/json"}))
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

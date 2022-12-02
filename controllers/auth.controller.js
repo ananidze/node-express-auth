@@ -41,15 +41,15 @@ exports.login = async (req, res) => {
         }
 
         const accessToken = jwt.sign({ id: user._id, email: user.email }, process.env.ACCESS_TOKEN, {
-            expiresIn: "2m",
+            expiresIn: "1h",
         });
         const refreshToken = jwt.sign({ id: user._id, email: user.email }, process.env.REFRESH_TOKEN, {
-            expiresIn: "10m",
+            expiresIn: "20d",
         });
 
         await user.updateOne({ refreshToken: refreshToken });
 
-        return res.status(200).json({ accessToken, refreshToken });
+        return res.status(200).json({ accessToken, refreshToken, message: "Logged in successfully" });
 
     } catch (error) {
         throw error;
@@ -60,7 +60,8 @@ exports.refreshToken = async (req, res) => {
     try {
         const refreshToken = req.body.refreshToken;
 
-        if (!refreshToken) {
+        const isExpired = jwt.verify(refreshToken, process.env.REFRESH_TOKEN)
+        if (!refreshToken || !isExpired) {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
@@ -71,18 +72,13 @@ exports.refreshToken = async (req, res) => {
         }
 
         const accessToken = jwt.sign({ id: user._id, email: user.email }, process.env.ACCESS_TOKEN, {
-            expiresIn: "2m",
+            expiresIn: "10d",
         });
-        const newRefreshToken = jwt.sign({ id: user._id, email: user.email }, process.env.REFRESH_TOKEN, {
-            expiresIn: "10m",
-        })
 
-        await user.updateOne({ refreshToken: newRefreshToken });
-
-        return res.status(200).json({ accessToken, refreshToken });
+        return res.status(200).json({ accessToken });
 
     } catch (error) {
-        throw error;
+        res.status(401).json({ message: error.message });
     }
 }
 
