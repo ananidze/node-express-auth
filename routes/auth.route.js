@@ -5,14 +5,14 @@ const isAuthenticated = require('../middlewares/isAuthenticated');
 const passport = require('passport');
 
 function isLoggedIn(req, res, next) {
-    req.user ? next() : res.sendStatus(401);
+    req.user ? next() : res.status(401).json({message: "Unauthorized"});
   }
 
 router.post("/sign-up", validateSignUp, signUp);
 router.post("/login", validateLogin, login);
 router.get('/google',
   passport.authenticate('google', { scope:
-      [ 'profile', 'email' ] }
+      [ 'profile', 'email', 'https://www.googleapis.com/auth/user.gender.read'] }
 ));
 
 router.get('/google/redirect',

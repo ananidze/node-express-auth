@@ -15,7 +15,6 @@ exports.validateSignUp = [
   check("password").isLength({ min: 6 }).withMessage("minimum 6 characters"),
   (req, res, next) => {
     const errors = validationResult(req);
-    console.log(req.body)
     if (!errors.isEmpty())
       return res.status(422).json({ errors: errors.array() });
     next();
@@ -27,7 +26,6 @@ exports.validateLogin = [
   check("password").isLength({ min: 6 }).withMessage("minimum 6 characters"),
   (req, res, next) => {
     const errors = validationResult(req);
-    console.log(req.body)
     if (!errors.isEmpty())
       return res.status(422).json({ errors: errors.array() });
     next();

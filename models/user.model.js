@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema(
     gender: String,
     password: String,
     refreshToken: String,
+    picture: String,
   },
   { timestamps: true, versionKey: false }
 );

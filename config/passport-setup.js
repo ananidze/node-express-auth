@@ -10,10 +10,18 @@ passport.use(new GoogleStrategy({
   passReqToCallback: true,
 },
 function(request, accessToken, refreshToken, profile, done) {
-  User.findOne({email: profile._json.email}, function(err, user) {
-    return done(err, user)
+  User.findOne({email: profile._json.email}, async function(err, user) {
+    if(!user) {
+      user = await User.create({
+        email: profile._json.email,
+        firstName: profile._json.name,
+        lastName: profile._json.family_name,
+        picture: profile._json.picture,
+      })
+    }
+    return done(err, user, accessToken, refreshToken)
   })
-  // return done(null, profile)
+  // return done(null, userr)
 }));
 
 passport.serializeUser(function(user, done) {
