@@ -93,5 +93,6 @@ exports.logout = async (req, res) => {
 };
 
 exports.protected = async (req, res) => {
+    console.log(req.user)
     return res.status(200).json({ message: "Protected route" });
 }

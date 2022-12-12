@@ -1,26 +1,32 @@
+require("dotenv").config();
 const logger = require("morgan");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const session = require("express-session");
+const passport = require("passport");
+require("./config/passport-setup");
 const bodyParser = require('body-parser')
 const authRouter = require("./routes/auth.route");
 
-require("dotenv").config();
 
 const app = express();
 
 mongoose
-  .connect(process.env.DB_HOST, {
+  .connect(process.env.DATABASE_TEST_URI, {
     useUnifiedTopology: true,
     useNewUrlParser: true,
   })
-  .catch((err) => console.log(err))
+  .catch((err) => console.log(err.message))
   .then(() => console.log("Connected To MongoDB"));
 
 app.use(cors())
+app.use(session({ secret: 'cats', resave: false, saveUninitialized: true }));
 app.use(bodyParser.json({type:"application/json"}))
 app.use(logger("dev"));
 app.use(express.json());
+app.use(passport.initialize());
+app.use(passport.session())
 app.use(express.urlencoded({ extended: false }));
 
 app.use("/api", authRouter);
