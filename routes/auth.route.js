@@ -12,16 +12,21 @@ router.post("/sign-up", validateSignUp, signUp);
 router.post("/login", validateLogin, login);
 router.get('/google',
   passport.authenticate('google', { scope:
-      [ 'profile', 'email', 'https://www.googleapis.com/auth/user.gender.read'] }
+      [ 'profile', 'email' ] }
 ));
 
 router.get('/google/redirect',
 passport.authenticate('google', { failureRedirect: '/login', failureMessage: true }),
   function(req, res) {
-    res.redirect('/api/protected');
+    res.redirect('http://localhost:5000/quiz');
   });
 router.get('/protected',  isLoggedIn, protected);
 router.post('/refresh', validateRefreshToken, refreshToken);
-router.delete('/logout', isAuthenticated, logout);
+// router.delete('/logout', isLoggedIn, logout);
+router.get("/logout", (req, res) => {
+    console.log(req.user)
+    req.session.destroy();
+    return res.status(201).redirect('http://localhost:5000/');
+  });
 
 module.exports = router;
