@@ -5,11 +5,6 @@ const parameterOption = new mongoose.Schema({
     value: { type: Number, required: true },
 })
 
-
-const ParametersSchema = new mongoose.Schema({
-    parameters: { type: [parameterOption], required: true },
-})
-
 const answerOptions = new mongoose.Schema({
     target: { type: String, required: true },
     weight: { type: Number, required: true },
@@ -22,9 +17,10 @@ const QuestionsSchema = new mongoose.Schema({
 })
 
 const QuizSchema = new mongoose.Schema({
-    questions: [QuestionsSchema],
+    questions: [[QuestionsSchema]],
     parameters: [[parameterOption]],
     title: { type: String, required: true },
 }, { versionKey: false })
+
 
 module.exports = mongoose.model('Quiz', QuizSchema);

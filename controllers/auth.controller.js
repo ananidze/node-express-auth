@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken")
+const passport = require('passport');
 const User = require("../models/user.model");
+
 
 exports.signUp = async (req, res) => {
     try {
@@ -77,6 +79,42 @@ exports.refreshToken = async (req, res) => {
 
         return res.status(200).json({ accessToken });
 
+    } catch (error) {
+        res.status(401).json({ message: error.message });
+    }
+}
+
+exports.googleLogin = async (req, res, next) => {
+    try {
+        const { returnTo } = req.query
+        const state = returnTo
+          ? new Buffer.from(JSON.stringify({ returnTo })).toString('base64')
+          : undefined
+      
+        const authenticator = passport.authenticate('google', { scope: ['email', 'profile'], state })
+      
+        authenticator(req, res, next)
+    } catch (error) {
+        res.status(401).json({ message: error.message });
+    }
+}
+
+exports.googleRedirect = async (req, res) => {
+    try {
+        const { state } = req.query
+        const { returnTo } = JSON.parse(new Buffer.from(state, 'base64').toString())
+        if (typeof returnTo === 'string') {
+          return res.redirect(`http://localhost:5000/quiz/${returnTo}`)
+        }
+    } catch (error) {
+        res.status(401).json({ message: error.message });
+    }
+}
+
+exports.clearSession = async (req, res) => {
+    try {
+        req.session.destroy();
+        return res.status(201).redirect('http://localhost:5000/');
     } catch (error) {
         res.status(401).json({ message: error.message });
     }

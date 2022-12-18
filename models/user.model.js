@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema(
     password: String,
     refreshToken: String,
     picture: String,
+    role: String,
   },
   { timestamps: true, versionKey: false }
 );

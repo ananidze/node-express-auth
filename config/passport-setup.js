@@ -1,6 +1,7 @@
 const passport = require("passport");
 const User = require("../models/user.model");
-const GoogleStrategy = require( 'passport-google-oauth20' ).Strategy;
+const ROLES = require("../utils/roles");
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 
 passport.use(new GoogleStrategy({
@@ -9,24 +10,26 @@ passport.use(new GoogleStrategy({
   callbackURL: "/api/google/redirect",
   passReqToCallback: true,
 },
-function(request, accessToken, refreshToken, profile, done) {
-  User.findOne({email: profile._json.email}, async function(err, user) {
-    if(!user) {
-      user = await User.create({
-        email: profile._json.email,
-        firstName: profile._json.given_name,
-        lastName: profile._json.family_name,
-        picture: profile._json.picture,
-      })
-    }
-    return done(err, user, accessToken, refreshToken)
-  })
-}));
+  function (request, accessToken, refreshToken, profile, done) {
+    User.findOne({ email: profile._json.email }, '-createdAt -updatedAt', 
+    async function (err, user) {
+      if (!user) {
+        user = await User.create({
+          email: profile._json.email,
+          firstName: profile._json.given_name,
+          lastName: profile._json.family_name,
+          picture: profile._json.picture,
+          role: ROLES.User
+        })
+      }
+      return done(err, user, accessToken, refreshToken)
+    })
+  }));
 
-passport.serializeUser(function(user, done) {
+passport.serializeUser(function (user, done) {
   done(null, user);
 });
 
-passport.deserializeUser(function(user, done) {
+passport.deserializeUser(function (user, done) {
   done(null, user);
 });
