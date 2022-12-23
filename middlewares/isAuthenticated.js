@@ -8,9 +8,7 @@ module.exports = async function (req, res, next) {
       next();
     }
     const decodedData = jwt.verify(token, process.env.ACCESS_TOKEN)
-    console.log(decodedData)
     req.user = decodedData
-    console.log(req.user, decodedData)
     
     next();
   } catch (err) {
