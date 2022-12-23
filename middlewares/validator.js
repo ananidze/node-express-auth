@@ -78,6 +78,7 @@ exports.validateSubmitQuiz = [
   check("parameters").isArray(),
   check("parameters.*.*.name").isString().isLength({ min: 1 }),
   check("parameters.*.*.value").isNumeric(),
+  check("parameters.*.*.shortText").isString(),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

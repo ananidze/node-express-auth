@@ -1,17 +1,14 @@
-const jwt = require("jsonwebtoken");
+const passport = require("passport");
 
 module.exports = async function (req, res, next) {
-  try {
-    const token = req.get('Authorization').split(' ')[1];
-    if (!token) {
-      res.json({ message: "Token Not Exists", expired: true });
-      next();
+  passport.authenticate("jwt", { session: false }, (err, user, info) => {
+    if (err) {
+      return res.status(500).send(err);
     }
-    const decodedData = jwt.verify(token, process.env.ACCESS_TOKEN)
-    req.user = decodedData
-    
+    if (!user) {
+      return res.sendStatus(401);
+    }
+    req.user = user;
     next();
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
+  })(req, res, next);
 };

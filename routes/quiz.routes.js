@@ -1,116 +1,118 @@
-const router = require('express').Router();
+const router = require("express").Router();
 
 const isAuthenticated = require("../middlewares/isAuthenticated");
-const sendMail = require('../utils/mailer')
-const { validateCreateQuiz, validateSubmitQuiz } = require('../middlewares/validator');
-const Quiz = require('../models/quiz.model');
-const User = require('../models/user.model');
-const SubmittedQuizzes = require('../models/submittedQuizzes.model');
+const sendMail = require("../utils/mailer");
+const {
+  validateCreateQuiz,
+  validateSubmitQuiz,
+} = require("../middlewares/validator");
+const Quiz = require("../models/quiz.model");
+const User = require("../models/user.model");
+const SubmittedQuizzes = require("../models/submittedQuizzes.model");
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
-    try {
-        const quiz = await Quiz.create(req.body);
-        res.status(201).json(quiz);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+  try {
+    const quiz = await Quiz.create(req.body);
+    res.status(201).json(quiz);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 router.get("/quiz", async (req, res) => {
-    try {
-        const quiz = await Quiz.find().select("title");
-        res.status(200).json(quiz);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+  try {
+    const quiz = await Quiz.find().select("title");
+    res.status(200).json(quiz);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 router.get("/quiz/:id", async (req, res) => {
-    try {
-        const quiz = await Quiz.findOne({ _id: req.params.id });
-        res.status(201).json(quiz);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+  try {
+    const quiz = await Quiz.findOne({ _id: req.params.id });
+    res.status(201).json(quiz);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 router.put("/quiz/:id", async (req, res) => {
-    try {
-        await Quiz.findByIdAndUpdate({ _id: req.params.id }, req.body);
-        res.status(201).json({ message: "Quiz updated successfully" });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+  try {
+    await Quiz.findByIdAndUpdate({ _id: req.params.id }, req.body);
+    res.status(201).json({ message: "Quiz updated successfully" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 router.get("/quiz/paginate/:page", async (req, res) => {
-    try {
-        const pageSize = 10;
-        const page = parseInt(req.params.page);
+  try {
+    const pageSize = 10;
+    const page = parseInt(req.params.page);
 
-        const skip = (page - 1) * pageSize;
+    const skip = (page - 1) * pageSize;
 
-        const quizzes = await SubmittedQuizzes.find()
-            .skip(skip)
-            .limit(pageSize)
-            .populate("userId", "firstName lastName email")
-            .exec();
+    const quizzes = await SubmittedQuizzes.find()
+      .skip(skip)
+      .limit(pageSize)
+      .populate("userId", "firstName lastName email")
+      .exec();
 
-        const formattedQuizzes = quizzes.map((quiz) => {
-            return {
-                firstName: quiz.userId.firstName,
-                lastName: quiz.userId.lastName,
-                email: quiz.userId.email,
-                _id: quiz._id,
-            };
-        });
+    const formattedQuizzes = quizzes.map((quiz) => {
+      return {
+        firstName: quiz.userId.firstName,
+        lastName: quiz.userId.lastName,
+        email: quiz.userId.email,
+        _id: quiz._id,
+      };
+    });
 
-        const totalQuizzes = await SubmittedQuizzes.countDocuments().exec();
-        const totalPages = Math.floor(totalQuizzes / pageSize + 1);
+    const totalQuizzes = await SubmittedQuizzes.countDocuments().exec();
+    const totalPages = Math.floor(totalQuizzes / pageSize + 1);
 
-        res.json({ quizzes: formattedQuizzes, totalPages });
-    } catch (error) { }
+    res.json({ quizzes: formattedQuizzes, totalPages });
+  } catch (error) {}
 });
 
 router.get("/quiz/result/:quizId", async (req, res) => {
-    try {
-        const quiz = await SubmittedQuizzes.findById(req.params.quizId)
-            .populate("userId", "_id firstName lastName email picture")
-            .lean();
-        if (!quiz) {
-            res.status(404).json({ message: "Information Not found" });
-        }
-
-        const { userId, ...rest } = quiz;
-
-        res.json({ user: userId, rest });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
+  try {
+    const quiz = await SubmittedQuizzes.findById(req.params.quizId)
+      .populate("userId", "_id firstName lastName email picture")
+      .lean();
+    if (!quiz) {
+      res.status(404).json({ message: "Information Not found" });
     }
+
+    const { userId, ...rest } = quiz;
+
+    res.json({ user: userId, rest });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
 router.post(
-    "/quiz/submit",
-    validateSubmitQuiz,
-    isAuthenticated,
-    async (req, res) => {
-        try {
-            const { _id, ...rest } = req.body;
-            console.log(rest);
-            await SubmittedQuizzes.create({ ...rest, userId: req.user._id });
-            res.status(201).json({ message: "Quiz submitted successfully" });
-        } catch (error) {
-            res.status(400).json({ error: error.message });
-        }
+  "/quiz/submit",
+  validateSubmitQuiz,
+  isAuthenticated,
+  async (req, res) => {
+    try {
+      const { _id, ...rest } = req.body;
+      console.log(rest);
+      await SubmittedQuizzes.create({ ...rest, userId: req.user._id });
+      res.status(201).json({ message: "Quiz submitted successfully" });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
     }
+  }
 );
 
-
-router.post('/quiz/send-email', async (req, res) => {
-    try {
-        const quiz = await SubmittedQuizzes.findById(req.body._id);
-        const user = await User.findById(quiz.userId);
-        const html = `
+router.post("/quiz/send-email", async (req, res) => {
+  try {
+    const quiz = await SubmittedQuizzes.findById(req.body._id);
+    const user = await User.findById(quiz.userId);
+    const html = `
             <!DOCTYPE html>
             <html lang="en">
             <head>
@@ -157,15 +159,14 @@ router.post('/quiz/send-email', async (req, res) => {
                 </div>
             </body>
             </html>
-            `
+            `;
 
-        sendMail(user.email, 'Quiz Results', html);
+    sendMail(user.email, "Quiz Results", html);
 
-        res.status(201).json({ message: 'Email sent successfully' });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-})
-
+    res.status(201).json({ message: "Email sent successfully" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
 module.exports = router;
