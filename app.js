@@ -22,7 +22,7 @@ mongoose
   .then(() => console.log("Connected To MongoDB"));
 
 app.use(cors({
-    origin: "http://localhost:5000/",
+    origin: "http://localhost:5000",
     methods: "GET,POST,PUT,DELETE",
     credentials: true,
   })
