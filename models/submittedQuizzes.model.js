@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const parameterOption = new mongoose.Schema({
     name: { type: String, required: true },
     value: { type: Number, required: true },
+    shortText: { type: String, required: true },
 })
 
 const answerOptions = new mongoose.Schema({
