@@ -8,6 +8,7 @@ const {
 } = require("../middlewares/validator");
 const Quiz = require("../models/quiz.model");
 const User = require("../models/user.model");
+const puppeteer = require('puppeteer');
 const SubmittedQuizzes = require("../models/submittedQuizzes.model");
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
@@ -168,5 +169,72 @@ router.post("/quiz/send-email", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+router.get('/quiz/pdf/:id', async (req, res) => {
+    const quiz = await SubmittedQuizzes.findById(req.params.id);
+    const user = await User.findById(quiz.userId);
+    const browser = await puppeteer.launch({args: ["--no-sandbox", "--disable-setuid-sandbox"]});
+    const page = await browser.newPage();
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <style>
+            body { font-family: monospace;}
+            .main-box { background-color: #d7d4fa; padding: 20px 0;}
+            .box-header { padding-left: 20px; }
+            .box-titles { padding-left: 20px; }
+            .user-results-item{ padding-left: 20px;}
+            .box-footer{padding-left: 20px;}
+        </style>
+    </head>
+    <body>
+        <div class="main-box">
+        <div class="box-header">
+            <h1>${user.firstName} ${user.lastName}s results</h1>
+        </div>
+        <hr />
+        <div class="user-information">
+            <div class="box-titles">
+            <h2>User information</h2>
+            </div>
+            <ul>
+                <li><b>First name: </b> ${user.firstName}</li>
+                <li><b>Last name: </b> ${user.lastName}</li>
+                <li><b>Mail: </b> ${user.email}</li>
+            </ul>
+            <hr />
+        </div>
+        <div class="user-results">
+            <div class="box-titles">
+            <h2>Results</h2>
+            </div>
+            <div class="user-results-item"><b>The test showed us that you: </b>S E</div class="user-results-item">
+            <hr />
+        </div>
+        <div class="box-footer">
+            <h3>Quiz</h3>
+        </div>
+        </div>
+    </body>
+    </html>`;
+  
+    await page.setContent(html);
+    await page.emulateMediaType("print");
+  
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true
+    });
+  
+    await browser.close();
+    res.setHeader('Content-Disposition', 'attachment; filename="my-pdf.pdf"');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(pdf);
+  });
 
 module.exports = router;
