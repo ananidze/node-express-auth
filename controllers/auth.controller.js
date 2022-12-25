@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const Roles = require("../utils/roles");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const User = require("../models/user.model");
@@ -20,6 +21,7 @@ exports.signUp = async (req, res) => {
       age: req.body.age,
       gender: req.body.gender,
       password: hashedpassword,
+      role: Roles.Admin,
     });
 
     return res.status(201).json({ message: "User created successfully" });
@@ -67,7 +69,6 @@ exports.refreshToken = async (req, res) => {
     }
 
     const user = await User.findOne({ refreshToken: refreshToken });
-    console.log(user);
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" });
     }

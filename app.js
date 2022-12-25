@@ -6,10 +6,10 @@ const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 require("./config/passport-setup");
-const bodyParser = require('body-parser')
+const bodyParser = require("body-parser");
 const authRouter = require("./routes/auth.route");
 const quizRouter = require("./routes/quiz.routes");
-
+const superRouter = require("./routes/super.routes");
 
 const app = express();
 
@@ -21,22 +21,32 @@ mongoose
   .catch((err) => console.log(err.message))
   .then(() => console.log("Connected To MongoDB"));
 
-app.use(cors({
+app.use(
+  cors({
     origin: "http://localhost:5000",
-    methods: "GET,POST,PUT,DELETE",
+    methods: "GET,POST,PUT,DELETE,PATCH",
     credentials: true,
   })
 );
-app.use(session({ secret: 'cats', resave: false, saveUninitialized: true, cookie: { secure: false } }));
-app.use(bodyParser.json({type:"application/json"}))
+app.use(
+  session({
+    secret: "cats",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false },
+  })
+);
+app.use(bodyParser.json({ type: "application/json" }));
+app.use(express.static("pdf"));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(passport.initialize());
-app.use(passport.session())
+app.use(passport.session());
 app.use(express.urlencoded({ extended: false }));
 
 app.use("/api", authRouter);
-app.use('/api', quizRouter)
+app.use("/api", quizRouter);
+app.use("/api", superRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

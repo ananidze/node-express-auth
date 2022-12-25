@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const pdf = require("html-pdf");
 
 const isAuthenticated = require("../middlewares/isAuthenticated");
 const sendMail = require("../utils/mailer");
@@ -8,7 +9,7 @@ const {
 } = require("../middlewares/validator");
 const Quiz = require("../models/quiz.model");
 const User = require("../models/user.model");
-const puppeteer = require('puppeteer');
+const puppeteer = require("puppeteer");
 const SubmittedQuizzes = require("../models/submittedQuizzes.model");
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
@@ -20,10 +21,22 @@ router.post("/quiz", validateCreateQuiz, async (req, res) => {
   }
 });
 
-router.get("/quiz", async (req, res) => {
+router.get("/quiz/user/paginate/:page", async (req, res) => {
   try {
-    const quiz = await Quiz.find().select("title");
-    res.status(200).json(quiz);
+    const page = parseInt(req.params.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const skip = (page - 1) * limit;
+    const quiz = await Quiz.find()
+      .skip(skip)
+      .limit(limit)
+      .select("title")
+      .exec();
+
+    const totalQuizzes = await Quiz.countDocuments().exec();
+    const totalPages = Math.floor(totalQuizzes / limit + 1);
+
+    res.status(200).json({ quiz, totalPages });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -38,11 +51,28 @@ router.get("/quiz/:id", async (req, res) => {
   }
 });
 
-router.put("/quiz/:id", async (req, res) => {
+router.put("/quiz/:id", validateCreateQuiz, async (req, res) => {
   try {
-    await Quiz.findByIdAndUpdate({ _id: req.params.id }, req.body);
-    res.status(201).json({ message: "Quiz updated successfully" });
+    // Quiz.findByIdAndUpdate(
+    //   req.params.id,
+    //   req.body,
+    //   { new: true },
+    //   function (err, updatedObject) {
+    //     if (err) return res.json({ message: err.message });
+    //     res.status(201).json({ message: "Quiz updated successfully" });
+    //     // res.send(updatedObject);
+    //   }
+    // );
+    const updatedObject = await Quiz.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+      }
+    );
+    res.send(updatedObject);
   } catch (error) {
+    console.log(error.message);
     res.status(400).json({ error: error.message });
   }
 });
@@ -100,7 +130,6 @@ router.post(
   async (req, res) => {
     try {
       const { _id, ...rest } = req.body;
-      console.log(rest);
       await SubmittedQuizzes.create({ ...rest, userId: req.user._id });
       res.status(201).json({ message: "Quiz submitted successfully" });
     } catch (error) {
@@ -170,12 +199,11 @@ router.post("/quiz/send-email", async (req, res) => {
   }
 });
 
-router.get('/quiz/pdf/:id', async (req, res) => {
-    const quiz = await SubmittedQuizzes.findById(req.params.id);
-    const user = await User.findById(quiz.userId);
-    const browser = await puppeteer.launch({args: ["--no-sandbox", "--disable-setuid-sandbox"]});
-    const page = await browser.newPage();
-    const html = `
+router.post("/quiz/pdf", async (req, res) => {
+  const { _id, result } = req.body;
+  const quiz = await SubmittedQuizzes.findById(_id);
+  const user = await User.findById(quiz.userId);
+  const html = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -213,7 +241,7 @@ router.get('/quiz/pdf/:id', async (req, res) => {
             <div class="box-titles">
             <h2>Results</h2>
             </div>
-            <div class="user-results-item"><b>The test showed us that you: </b>S E</div class="user-results-item">
+            <div class="user-results-item"><b>The test showed us that you: </b>${result}</div class="user-results-item">
             <hr />
         </div>
         <div class="box-footer">
@@ -222,19 +250,17 @@ router.get('/quiz/pdf/:id', async (req, res) => {
         </div>
     </body>
     </html>`;
-  
-    await page.setContent(html);
-    await page.emulateMediaType("print");
-  
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true
-    });
-  
-    await browser.close();
-    res.setHeader('Content-Disposition', 'attachment; filename="my-pdf.pdf"');
-    res.setHeader('Content-Type', 'application/pdf');
-    res.send(pdf);
+
+  const filePathToWrite = "pdf/my-pdf.pdf";
+  const filePath = "my-pdf.pdf";
+
+  pdf.create(html).toFile(filePathToWrite, (err) => {
+    if (err) {
+      res.send(err);
+    } else {
+      res.json({ filePath });
+    }
   });
+});
 
 module.exports = router;
