@@ -165,7 +165,10 @@ router.post("/quiz/pdf", async (req, res) => {
   const { _id, result } = req.body;
   const quiz = await SubmittedQuizzes.findById(_id);
   const user = await User.findById(quiz.userId);
-  const browser = await puppeteer.launch()
+  const browser = await puppeteer.launch({
+    headless:false,
+    args: ["--no-sandbox"]
+});
   const page = await browser.newPage()
   const html = generateHTML(user.firstName, user.lastName, user.email, result);
   await page.setContent(html)
