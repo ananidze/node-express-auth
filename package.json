@@ -20,6 +20,7 @@
     "nodemailer": "^6.8.0",
     "passport": "^0.6.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-jwt": "^4.0.0"
+    "passport-jwt": "^4.0.0",
+    "phantomjs-prebuilt": "^2.1.16"
   }
 }
