@@ -112,7 +112,7 @@ exports.googleRedirect = async (req, res) => {
       const encodedAccessToken = encodeURIComponent(tokens.accessToken);
       const encodedRefreshToken = encodeURIComponent(tokens.refreshToken);
       return res.redirect(
-        `http://localhost:5000/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+        `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
       );
     }
   } catch (error) {
@@ -123,7 +123,7 @@ exports.googleRedirect = async (req, res) => {
 exports.clearSession = async (req, res) => {
   try {
     req.session.destroy();
-    return res.status(201).redirect("http://localhost:5000/");
+    return res.status(201).redirect("https://quiz-ph.netlify.app/");
   } catch (error) {
     res.status(401).json({ message: error.message });
   }
