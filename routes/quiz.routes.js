@@ -1,5 +1,6 @@
 const router = require("express").Router();
-const pdf = require("html-pdf");
+const puppeteer = require("puppeteer");
+const fs = require("fs");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 const sendMail = require("../utils/mailer");
 const { validateCreateQuiz, validateSubmitQuiz } = require("../middlewares/validator");
@@ -164,18 +165,19 @@ router.post("/quiz/pdf", async (req, res) => {
   const { _id, result } = req.body;
   const quiz = await SubmittedQuizzes.findById(_id);
   const user = await User.findById(quiz.userId);
+  const browser = await puppeteer.launch()
+  const page = await browser.newPage()
   const html = generateHTML(user.firstName, user.lastName, user.email, result);
+  await page.setContent(html)
+  const pdf = await page.pdf({ format: 'A4' })
+  await browser.close()
 
   const filePathToWrite = "pdf/my-pdf.pdf";
   const filePath = "my-pdf.pdf";
+  
+  fs.writeFileSync(filePathToWrite, pdf)
 
-  pdf.create(html).toFile(filePathToWrite, (err) => {
-    if (err) {
-      res.send(err);
-    } else {
-      res.json({ filePath });
-    }
-  });
+  res.status(201).json({ filePath });
 });
 
 module.exports = router;
