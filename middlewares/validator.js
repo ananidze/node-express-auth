@@ -44,16 +44,20 @@ exports.validateRefreshToken = [
 
 exports.validateCreateQuiz = [
   check("title").isString().isLength({ min: 1 }),
+  check("titleRu").isString().optional({ nullable: true }),
   check("questions").isArray(),
   check("questions.*.*.question").isString().isLength({ min: 1 }),
+  check("questions.*.*.questionRu").isString().optional({ nullable: true }),
   check("questions.*.*.answerOptions").isArray(),
   check("questions.*.*.answerOptions.*.target").isString().isLength({ min: 1 }),
   check("questions.*.*.answerOptions.*.weight").isNumeric(),
-  check("questions.*.*.answerOptions.*.answerText")
+  check("questions.*.*.answerOptions.*.answerText").isString(),
+  check("questions.*.*.answerOptions.*.answerTextRu")
     .isString()
-    .isLength({ min: 1 }),
+    .optional({ nullable: true }),
   check("parameters").isArray(),
   check("parameters.*.*.name").isString().isLength({ min: 1 }),
+  check("parameters.*.*.nameRu").isString().optional({ nullable: true }),
   check("parameters.*.*.value").isNumeric(),
   (req, res, next) => {
     const errors = validationResult(req);
@@ -66,8 +70,13 @@ exports.validateCreateQuiz = [
 
 exports.validateSubmitQuiz = [
   check("title").isString().isLength({ min: 1 }),
+  check("titleRu").isString().isLength({ min: 1 }).optional({ nullable: true }),
   check("questions").isArray(),
   check("questions.*.*.question").isString().isLength({ min: 1 }),
+  check("questions.*.*.questionRu")
+    .isString()
+    .isLength({ min: 1 })
+    .optional({ nullable: true }),
   check("questions.*.*.answerOptions").isArray(),
   check("questions.*.*.answerOptions.*.target").isString().isLength({ min: 1 }),
   check("questions.*.*.answerOptions.*.weight").isNumeric(),
@@ -75,8 +84,16 @@ exports.validateSubmitQuiz = [
   check("questions.*.*.answerOptions.*.answerText")
     .isString()
     .isLength({ min: 1 }),
+  check("questions.*.*.answerOptions.*.answerTextRu")
+    .isString()
+    .isLength({ min: 1 })
+    .optional({ nullable: true }),
   check("parameters").isArray(),
   check("parameters.*.*.name").isString().isLength({ min: 1 }),
+  check("parameters.*.*.nameRu")
+    .isString()
+    .isLength({ min: 1 })
+    .optional({ nullable: true }),
   check("parameters.*.*.value").isNumeric(),
   check("parameters.*.*.shortText").isString(),
   (req, res, next) => {

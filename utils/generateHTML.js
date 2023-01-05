@@ -1,5 +1,5 @@
 const generateHTML = (firstName, lastName, email, result) => {
-    return `
+  return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -37,7 +37,7 @@ const generateHTML = (firstName, lastName, email, result) => {
               <div class="box-titles">
               <h2>Results</h2>
               </div>
-              <div class="user-results-item"><b>The test showed us that you: </b>${result}</div class="user-results-item">
+              <div class="user-results-item"><b>Your test results: </b>${result}</div class="user-results-item">
               <hr />
           </div>
           <div class="box-footer">
@@ -47,6 +47,6 @@ const generateHTML = (firstName, lastName, email, result) => {
       </body>
       </html>
     `;
-  }
+};
 
-  module.exports = generateHTML;
+module.exports = generateHTML;

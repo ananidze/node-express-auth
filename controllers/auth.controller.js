@@ -92,7 +92,6 @@ exports.googleLogin = async (req, res, next) => {
       scope: ["email", "profile"],
       state,
     });
-
     authenticator(req, res, next);
   } catch (error) {
     res.status(401).json({ message: error.message });

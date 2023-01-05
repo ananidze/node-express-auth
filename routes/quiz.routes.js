@@ -3,7 +3,10 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 const sendMail = require("../utils/mailer");
-const { validateCreateQuiz, validateSubmitQuiz } = require("../middlewares/validator");
+const {
+  validateCreateQuiz,
+  validateSubmitQuiz,
+} = require("../middlewares/validator");
 const Quiz = require("../models/quiz.model");
 const ObjectId = require("mongoose").Types.ObjectId;
 const User = require("../models/user.model");
@@ -28,7 +31,7 @@ router.get("/quiz/user/paginate/:page", async (req, res) => {
     const quiz = await Quiz.find()
       .skip(skip)
       .limit(limit)
-      .select("title")
+      .select("title titleRu")
       .exec();
 
     const totalQuizzes = await Quiz.countDocuments().exec();
@@ -56,22 +59,22 @@ router.delete("/quiz/:id", async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
-})
+});
 
 router.put("/quiz/:id", validateCreateQuiz, async (req, res) => {
   try {
     const quiz = req.body;
-    quiz.parameters = quiz.parameters.map(arr =>
-      arr.map(obj => {
+    quiz.parameters = quiz.parameters.map((arr) =>
+      arr.map((obj) => {
         if (obj._id === "") obj._id = new ObjectId();
         return obj;
       })
     );
 
-    quiz.questions = quiz.questions.map(arr =>
-      arr.map(obj => {
+    quiz.questions = quiz.questions.map((arr) =>
+      arr.map((obj) => {
         if (obj._id === "") obj._id = new ObjectId();
-        obj.answerOptions.forEach(opt => {
+        obj.answerOptions.forEach((opt) => {
           if (opt._id === "") opt._id = new ObjectId();
         });
         return obj;
@@ -112,7 +115,7 @@ router.get("/quiz/paginate/:page", async (req, res) => {
     const totalPages = Math.floor(totalQuizzes / pageSize + 1);
 
     res.json({ quizzes: formattedQuizzes, totalPages });
-  } catch (error) { }
+  } catch (error) {}
 });
 
 router.get("/quiz/result/:quizId", async (req, res) => {
@@ -151,7 +154,12 @@ router.post("/quiz/send-email", async (req, res) => {
   try {
     const quiz = await SubmittedQuizzes.findById(req.body._id);
     const user = await User.findById(quiz.userId);
-    const html = generateHTML(user.firstName, user.lastName, user.email, req.body.result);
+    const html = generateHTML(
+      user.firstName,
+      user.lastName,
+      user.email,
+      req.body.result
+    );
 
     sendMail(user.email, "Quiz Results", html);
 
@@ -167,18 +175,18 @@ router.post("/quiz/pdf", async (req, res) => {
   const user = await User.findById(quiz.userId);
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox','--disable-setuid-sandbox']
-  })
-  const page = await browser.newPage()
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+  const page = await browser.newPage();
   const html = generateHTML(user.firstName, user.lastName, user.email, result);
-  await page.setContent(html)
-  const pdf = await page.pdf({ format: 'A4' })
-  await browser.close()
+  await page.setContent(html);
+  const pdf = await page.pdf({ format: "A4" });
+  await browser.close();
 
   const filePathToWrite = "pdf/my-pdf.pdf";
   const filePath = "my-pdf.pdf";
-  
-  fs.writeFileSync(filePathToWrite, pdf)
+
+  fs.writeFileSync(filePathToWrite, pdf);
 
   res.status(201).json({ filePath });
 });

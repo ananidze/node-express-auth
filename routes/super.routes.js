@@ -45,7 +45,6 @@ router.get("/admin/:id", async (req, res) => {
 
 router.delete("/admin/:id", async (req, res) => {
   try {
-    console.log("asdfa");
     const admin = await User.findById(req.params.id);
     if (!admin) {
       res.status(404).json({ message: "User Not Found" });
