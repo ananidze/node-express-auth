@@ -20,6 +20,12 @@ const QuestionsSchema = new mongoose.Schema({
   answerOptions: [answerOptions],
 });
 
+const ExtendedQuestionSchema = QuestionsSchema.add({
+  answerOptions: [
+    answerOptions.add({ choosen: { type: Boolean, default: false } }),
+  ],
+});
+
 const QuizSchema = new mongoose.Schema(
   {
     questions: [[QuestionsSchema]],
@@ -30,4 +36,24 @@ const QuizSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-module.exports = mongoose.model("Quiz", QuizSchema);
+const Quiz = mongoose.model("Quiz", QuizSchema);
+const SubmittedQuizzes = mongoose.model(
+  "SubmittedQuizzes",
+  QuizSchema.add({
+    userId: { type: mongoose.Types.ObjectId, required: true, ref: "User" },
+    questions: [[ExtendedQuestionSchema]],
+  })
+);
+
+const TempQuiz = mongoose.model(
+  "TempQuizzes",
+  QuizSchema.add({
+    userId: { type: mongoose.Types.ObjectId, required: true, ref: "User" },
+    questions: [[ExtendedQuestionSchema]],
+  })
+);
+module.exports = {
+  Quiz,
+  TempQuiz,
+  SubmittedQuizzes,
+};

@@ -32,4 +32,10 @@ const QuizSchema = new mongoose.Schema(
   { versionKey: false }
 );
 
-module.exports = mongoose.model("SubmittedQuizzes", QuizSchema);
+const TempQuiz = mongoose.model("TempQuiz", TempQuizSchema);
+const SubmittedQuizzes = mongoose.model("SubmittedQuizzes", QuizSchema);
+
+module.exports = {
+  TempQuiz,
+  SubmittedQuizzes,
+};

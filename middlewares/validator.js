@@ -80,7 +80,9 @@ exports.validateSubmitQuiz = [
   check("questions.*.*.answerOptions").isArray(),
   check("questions.*.*.answerOptions.*.target").isString().isLength({ min: 1 }),
   check("questions.*.*.answerOptions.*.weight").isNumeric(),
-  check("questions.*.*.answerOptions.*.choosen").isBoolean(),
+  check("questions.*.*.answerOptions.*.choosen")
+    .isBoolean()
+    .optional({ nullable: true }),
   check("questions.*.*.answerOptions.*.answerText")
     .isString()
     .isLength({ min: 1 }),

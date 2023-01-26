@@ -7,10 +7,9 @@ const {
   validateCreateQuiz,
   validateSubmitQuiz,
 } = require("../middlewares/validator");
-const Quiz = require("../models/quiz.model");
+const { Quiz, SubmittedQuizzes, TempQuiz } = require("../models/quiz.model");
 const ObjectId = require("mongoose").Types.ObjectId;
 const User = require("../models/user.model");
-const SubmittedQuizzes = require("../models/submittedQuizzes.model");
 const generateHTML = require("../utils/generateHTML");
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
@@ -43,9 +42,13 @@ router.get("/quiz/user/paginate/:page", async (req, res) => {
   }
 });
 
-router.get("/quiz/:id", async (req, res) => {
+router.get("/quiz/:id", isAuthenticated, async (req, res) => {
   try {
-    const quiz = await Quiz.findOne({ _id: req.params.id });
+    let quiz = await TempQuiz.findOne({ userId: req.user._id });
+    if (!quiz) {
+      quiz = await Quiz.findById(req.params.id);
+    }
+
     res.status(201).json(quiz);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -142,10 +145,37 @@ router.post(
   async (req, res) => {
     try {
       const { _id, ...rest } = req.body;
+      const temp = await TempQuiz.findOne({ userId: req.user._id });
+      if (!temp) {
+        res.status(400).json({ error: "Quiz not found" });
+      }
+      await TempQuiz.findByIdAndDelete(temp._id);
       await SubmittedQuizzes.create({ ...rest, userId: req.user._id });
       res.status(201).json({ message: "Quiz submitted successfully" });
     } catch (error) {
+      console.log(error.message);
       res.status(400).json({ error: error.message });
+    }
+  }
+);
+
+router.post(
+  "/quiz/temp",
+  validateSubmitQuiz,
+  isAuthenticated,
+  async (req, res) => {
+    try {
+      const userId = req.user._id;
+      const quiz = req.body;
+
+      quiz.userId = userId;
+
+      await TempQuiz.findOneAndUpdate({ userId }, quiz, { upsert: true });
+
+      res.send(200);
+    } catch (error) {
+      console.log(error.message);
+      res.status(500).json({ message: "Something Went Wrong" });
     }
   }
 );

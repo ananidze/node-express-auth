@@ -3,6 +3,7 @@ const Roles = require("../utils/roles");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const User = require("../models/user.model");
+const RefreshToken = require("../models/refreshTokenmodel");
 const generateJWTTokens = require("../utils/generateJWTTokens");
 
 exports.signUp = async (req, res) => {
@@ -49,7 +50,10 @@ exports.login = async (req, res) => {
 
     const tokens = generateJWTTokens(user);
 
-    await user.updateOne({ refreshToken: tokens.refreshToken });
+    await RefreshToken.create({
+      userId: user._id,
+      refreshToken: tokens.refreshToken,
+    });
 
     return res
       .status(200)
@@ -68,10 +72,12 @@ exports.refreshToken = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const user = await User.findOne({ refreshToken: refreshToken });
-    if (!user) {
+    const RT = await RefreshToken.findOne({ refreshToken: refreshToken });
+    if (!RT) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+
+    const user = await User.findOne({ _id: RT.userId });
 
     const tokens = generateJWTTokens(user);
 
@@ -107,22 +113,21 @@ exports.googleRedirect = async (req, res) => {
     if (typeof returnTo === "string") {
       const tokens = generateJWTTokens(req.user);
       const user = await User.findOne(req.user._id);
-      await user.updateOne({ refreshToken: tokens.refreshToken });
+
+      await RefreshToken.create({
+        userId: user._id,
+        refreshToken: tokens.refreshToken,
+      });
+
       const encodedAccessToken = encodeURIComponent(tokens.accessToken);
       const encodedRefreshToken = encodeURIComponent(tokens.refreshToken);
       return res.redirect(
-        `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+        `http://localhost:5000/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
       );
+      // return res.redirect(
+      //   `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+      // );
     }
-  } catch (error) {
-    res.status(401).json({ message: error.message });
-  }
-};
-
-exports.clearSession = async (req, res) => {
-  try {
-    req.session.destroy();
-    return res.status(201).redirect("https://quiz-ph.netlify.app/");
   } catch (error) {
     res.status(401).json({ message: error.message });
   }
@@ -131,10 +136,14 @@ exports.clearSession = async (req, res) => {
 exports.logout = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.user.email });
-    await user.update({ refreshToken: null });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    await RefreshToken.deleteOne({ userId: user._id });
     return res.status(200).json({ message: "User logged out successfully" });
   } catch (error) {
-    throw error;
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
