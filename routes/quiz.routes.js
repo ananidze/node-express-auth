@@ -188,10 +188,11 @@ router.post("/quiz/send-email", async (req, res) => {
       user.firstName,
       user.lastName,
       user.email,
-      req.body.result
+      req.body.result,
+      true
     );
 
-    sendMail(user.email, "Quiz Results", html);
+    sendMail(user.email, "Quiz Results", html, req.body.result);
 
     res.status(201).json({ message: "Email sent successfully" });
   } catch (error) {
@@ -208,7 +209,13 @@ router.post("/quiz/pdf", async (req, res) => {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   const page = await browser.newPage();
-  const html = generateHTML(user.firstName, user.lastName, user.email, result);
+  const html = generateHTML(
+    user.firstName,
+    user.lastName,
+    user.email,
+    result,
+    false
+  );
   await page.setContent(html);
   const pdf = await page.pdf({ format: "A4" });
   await browser.close();

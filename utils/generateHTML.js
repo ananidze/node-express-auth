@@ -1,4 +1,4 @@
-const generateHTML = (firstName, lastName, email, result) => {
+const generateHTML = (firstName, lastName, email, result, isEmail) => {
   return `
       <!DOCTYPE html>
       <html lang="en">
@@ -9,7 +9,7 @@ const generateHTML = (firstName, lastName, email, result) => {
           <title>Document</title>
           <style>
               body { font-family: monospace;}
-              .main-box { background-color: #d7d4fa; padding: 20px 0;}
+              .main-box { padding: 20px 0;}
               .box-header { padding-left: 20px; }
               .box-titles { padding-left: 20px; }
               .user-results-item{ padding-left: 20px;}
@@ -21,23 +21,10 @@ const generateHTML = (firstName, lastName, email, result) => {
           <div class="box-header">
               <h1>${firstName} ${lastName}'s results</h1>
           </div>
-          <hr />
-          <div class="user-information">
-              <div class="box-titles">
-              <h2>User information</h2>
-              </div>
-              <ul>
-                  <li><b>First name: </b> ${firstName}</li>
-                  <li><b>Last name: </b> ${lastName}</li>
-                  <li><b>Mail: </b> ${email}</li>
-              </ul>
-              <hr />
-          </div>
           <div class="user-results">
               <div class="box-titles">
-              <h2>Results</h2>
               </div>
-              <div class="user-results-item"><b>Your test results: </b>${result}</div class="user-results-item">
+              <img src="${isEmail ? "cid:result" : `${result}`}"/>
               <hr />
           </div>
           <div class="box-footer">
