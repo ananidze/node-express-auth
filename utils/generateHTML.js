@@ -24,7 +24,9 @@ const generateHTML = (firstName, lastName, email, result, isEmail) => {
           <div class="user-results">
               <div class="box-titles">
               </div>
-              <img src="${isEmail ? "cid:result" : `${result}`}"/>
+              <img src="${
+                isEmail ? "cid:result" : `${result}`
+              }" style="width:100vw; object-fit: cover; max-width:1000px"/>
               <hr />
           </div>
           <div class="box-footer">
