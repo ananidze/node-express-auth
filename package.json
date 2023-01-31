@@ -20,6 +20,6 @@
     "passport": "^0.6.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.0",
-    "puppeteer": "^19.4.1"
+    "puppeteer": "^18.2.1"
   }
 }

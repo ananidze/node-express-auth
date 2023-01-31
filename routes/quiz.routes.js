@@ -184,13 +184,7 @@ router.post("/quiz/send-email", async (req, res) => {
   try {
     const quiz = await SubmittedQuizzes.findById(req.body._id);
     const user = await User.findById(quiz.userId);
-    const html = generateHTML(
-      user.firstName,
-      user.lastName,
-      user.email,
-      req.body.result,
-      true
-    );
+    const html = generateHTML(req.body.result, true);
 
     sendMail(user.email, "Quiz Results", html, req.body.result);
 
@@ -203,39 +197,29 @@ router.post("/quiz/send-email", async (req, res) => {
 router.post("/quiz/pdf", async (req, res) => {
   try {
     const { _id, result } = req.body;
-    const quiz = await SubmittedQuizzes.findById(_id);
-    const user = await User.findById(quiz.userId);
+    // const quiz = await SubmittedQuizzes.findById(_id);
+    // const user = await User.findById(quiz.userId);
     const browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox"],
+      args: [
+        "--headless",
+        "--disable-gpu",
+        "--full-memory-crash-report",
+        "--unlimited-storage",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+      ],
     });
     const page = await browser.newPage();
-    const html = generateHTML(
-      user.firstName,
-      user.lastName,
-      user.email,
-      result,
-      false
-    );
+    const html = generateHTML(result, false);
     await page.setContent(html);
     const pdf = await page.pdf({ format: "A4" });
     await browser.close();
 
-    const filePathToWrite = "pdf/my-pdf.pdf";
-    const filePath = "my-pdf.pdf";
-
-    // await storage
-    //   .bucket(process.env.GCLOUD_STORAGE_BUCKET)
-    //   .file(filePath)
-    //   .save(pdf);
-
-    // res.status(201).json({
-    //   filePath: `https://storage.googleapis.com/${process.env.GCLOUD_STORAGE_BUCKET}/${filePath}`,
-    // });
-
-    fs.writeFileSync(filePathToWrite, pdf);
-
-    res.status(201).json({ filePath });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=result.pdf");
+    res.send(pdf);
   } catch (error) {
     console.log(error.message);
     res.status(400).json({ error: error.message });

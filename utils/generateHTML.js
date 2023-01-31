@@ -1,4 +1,4 @@
-const generateHTML = (firstName, lastName, email, result, isEmail) => {
+const generateHTML = (result, isEmail) => {
   return `
       <!DOCTYPE html>
       <html lang="en">
@@ -18,9 +18,7 @@ const generateHTML = (firstName, lastName, email, result, isEmail) => {
       </head>
       <body>
           <div class="main-box">
-          <div class="box-header">
-              <h1>${firstName} ${lastName}'s results</h1>
-          </div>
+         
           <div class="user-results">
               <div class="box-titles">
               </div>
@@ -29,9 +27,7 @@ const generateHTML = (firstName, lastName, email, result, isEmail) => {
               }" style="width:100vw; object-fit: cover; max-width:1000px"/>
               <hr />
           </div>
-          <div class="box-footer">
-              <h3>Quiz</h3>
-          </div>
+     
           </div>
       </body>
       </html>
