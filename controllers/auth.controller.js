@@ -3,7 +3,7 @@ const Roles = require("../utils/roles");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const User = require("../models/user.model");
-const RefreshToken = require("../models/refreshTokenmodel");
+const RefreshToken = require("../models/refreshTokenModel");
 const generateJWTTokens = require("../utils/generateJWTTokens");
 
 exports.signUp = async (req, res) => {
@@ -121,12 +121,12 @@ exports.googleRedirect = async (req, res) => {
 
       const encodedAccessToken = encodeURIComponent(tokens.accessToken);
       const encodedRefreshToken = encodeURIComponent(tokens.refreshToken);
-      return res.redirect(
-        `http://localhost:5000/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
-      );
       // return res.redirect(
-      //   `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+      //   `http://localhost:5000/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
       // );
+      return res.redirect(
+        `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+      );
     }
   } catch (error) {
     res.status(401).json({ message: error.message });

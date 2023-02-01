@@ -34,7 +34,7 @@ router.get("/quiz/user/paginate/:page", async (req, res) => {
       .exec();
 
     const totalQuizzes = await Quiz.countDocuments().exec();
-    const totalPages = Math.floor(totalQuizzes / limit + 1);
+    const totalPages = Math.ceil(totalQuizzes / limit);
 
     res.status(200).json({ quiz, totalPages });
   } catch (error) {
@@ -98,27 +98,38 @@ router.get("/quiz/paginate/:page", async (req, res) => {
     const page = parseInt(req.params.page);
 
     const skip = (page - 1) * pageSize;
-
-    const quizzes = await SubmittedQuizzes.find()
-      .skip(skip)
-      .limit(pageSize)
-      .populate("userId", "firstName lastName email")
-      .exec();
-
-    const formattedQuizzes = quizzes.map((quiz) => {
-      return {
-        firstName: quiz.userId.firstName,
-        lastName: quiz.userId.lastName,
-        email: quiz.userId.email,
-        _id: quiz._id,
-      };
-    });
+    const quizzes = await SubmittedQuizzes.aggregate([
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: pageSize },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          firstName: "$user.firstName",
+          lastName: "$user.lastName",
+          email: "$user.email",
+          createdAt: 1,
+          _id: 1,
+        },
+      },
+    ]).exec();
 
     const totalQuizzes = await SubmittedQuizzes.countDocuments().exec();
-    const totalPages = Math.floor(totalQuizzes / pageSize + 1);
+    const totalPages = Math.ceil(totalQuizzes / pageSize);
 
-    res.json({ quizzes: formattedQuizzes, totalPages });
-  } catch (error) {}
+    res.json({ quizzes, totalPages });
+  } catch (error) {
+    console.log(error.message);
+    res.status(400).json({ error: error.message });
+  }
 });
 
 router.get("/quiz/result/:quizId", async (req, res) => {
@@ -145,13 +156,12 @@ router.post(
   async (req, res) => {
     try {
       const { _id, ...rest } = req.body;
-      const temp = await TempQuiz.findOne({ userId: req.user._id });
-      if (!temp) {
-        res.status(400).json({ error: "Quiz not found" });
-      }
-      await TempQuiz.findByIdAndDelete(temp._id);
+      await TempQuiz.findOneAndDelete({ userId: req.user._id });
       await SubmittedQuizzes.create({ ...rest, userId: req.user._id });
-      res.status(201).json({ message: "Quiz submitted successfully" });
+      res.status(201).json({
+        message:
+          "Your test is done! Thanks for participating. Our representative will contact you soon.",
+      });
     } catch (error) {
       console.log(error.message);
       res.status(400).json({ error: error.message });

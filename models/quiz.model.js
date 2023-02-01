@@ -33,7 +33,7 @@ const QuizSchema = new mongoose.Schema(
     title: { type: String, required: true },
     titleRu: { type: String, default: "" },
   },
-  { versionKey: false }
+  { versionKey: false, timestamps: true }
 );
 
 const Quiz = mongoose.model("Quiz", QuizSchema);
