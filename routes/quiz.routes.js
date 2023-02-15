@@ -1,6 +1,4 @@
 const router = require("express").Router();
-const puppeteer = require("puppeteer");
-const fs = require("fs");
 const isAuthenticated = require("../middlewares/isAuthenticated");
 const sendMail = require("../utils/mailer");
 const {
@@ -11,6 +9,7 @@ const { Quiz, SubmittedQuizzes, TempQuiz } = require("../models/quiz.model");
 const ObjectId = require("mongoose").Types.ObjectId;
 const User = require("../models/user.model");
 const generateHTML = require("../utils/generateHTML");
+const { jsPDF } = require("jspdf");
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
   try {
@@ -206,30 +205,13 @@ router.post("/quiz/send-email", async (req, res) => {
 
 router.post("/quiz/pdf", async (req, res) => {
   try {
-    const { _id, result } = req.body;
-    // const quiz = await SubmittedQuizzes.findById(_id);
-    // const user = await User.findById(quiz.userId);
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--headless",
-        "--disable-gpu",
-        "--full-memory-crash-report",
-        "--unlimited-storage",
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-      ],
-    });
-    const page = await browser.newPage();
-    const html = generateHTML(result, false);
-    await page.setContent(html);
-    const pdf = await page.pdf({ format: "A4" });
-    await browser.close();
-
+    const { result } = req.body;
+    const doc = new jsPDF('p', 'pt', 'a4', true);
+    const mimeType = result.split(";")[0].split(":")[1];
+    doc.addImage(result, mimeType, 0, 0, doc.internal.pageSize.getWidth(), 0, undefined, 'FAST');
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=result.pdf");
-    res.send(pdf);
+    res.send(Buffer.from(doc.output('arraybuffer')));
   } catch (error) {
     console.log(error.message);
     res.status(400).json({ error: error.message });
