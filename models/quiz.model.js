@@ -26,10 +26,24 @@ const ExtendedQuestionSchema = QuestionsSchema.add({
   ],
 });
 
+const resultSchema = new mongoose.Schema(
+  {
+    result: { type: String, required: true },
+    descriptionId: {
+      ref: "Result",
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
+  },
+  { versionKey: false }
+);
+
 const QuizSchema = new mongoose.Schema(
   {
+    price: { type: Number },
     questions: [[QuestionsSchema]],
     parameters: [[parameterOption]],
+    results: [resultSchema],
     title: { type: String, required: true },
     titleRu: { type: String, default: "" },
   },
@@ -41,6 +55,7 @@ const SubmittedQuizzes = mongoose.model(
   "SubmittedQuizzes",
   QuizSchema.add({
     userId: { type: mongoose.Types.ObjectId, required: true, ref: "User" },
+    result: { type: String },
     questions: [[ExtendedQuestionSchema]],
   })
 );

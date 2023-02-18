@@ -121,12 +121,12 @@ exports.googleRedirect = async (req, res) => {
 
       const encodedAccessToken = encodeURIComponent(tokens.accessToken);
       const encodedRefreshToken = encodeURIComponent(tokens.refreshToken);
-      // return res.redirect(
-      //   `http://localhost:5000/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
-      // );
       return res.redirect(
-        `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+        `http://localhost:5000/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
       );
+      // return res.redirect(
+      //   `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+      // );
     }
   } catch (error) {
     res.status(401).json({ message: error.message });
@@ -140,6 +140,9 @@ exports.logout = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     await RefreshToken.deleteOne({ userId: user._id });
+    req.logout(function (err) {
+      if (err) return next(err);
+    });
     return res.status(200).json({ message: "User logged out successfully" });
   } catch (error) {
     console.error(error);

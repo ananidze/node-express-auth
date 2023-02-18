@@ -13,9 +13,27 @@ const { jsPDF } = require("jspdf");
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
   try {
-    const quiz = await Quiz.create(req.body);
+    const quiz = req.body;
+    quiz.parameters = quiz.parameters.map((arr) =>
+      arr.map((obj) => {
+        if (obj._id === "") obj._id = new ObjectId();
+        return obj;
+      })
+    );
+
+    quiz.questions = quiz.questions.map((arr) =>
+      arr.map((obj) => {
+        if (obj._id === "") obj._id = new ObjectId();
+        obj.answerOptions.forEach((opt) => {
+          if (opt._id === "") opt._id = new ObjectId();
+        });
+        return obj;
+      })
+    );
+    await Quiz.create(quiz);
     res.status(201).json(quiz);
   } catch (error) {
+    console.log(error.message);
     res.status(400).json({ error: error.message });
   }
 });
@@ -29,7 +47,7 @@ router.get("/quiz/user/paginate/:page", async (req, res) => {
     const quiz = await Quiz.find()
       .skip(skip)
       .limit(limit)
-      .select("title titleRu")
+      .select("title titleRu price")
       .exec();
 
     const totalQuizzes = await Quiz.countDocuments().exec();
@@ -45,7 +63,10 @@ router.get("/quiz/:id", isAuthenticated, async (req, res) => {
   try {
     let quiz = await TempQuiz.findOne({ userId: req.user._id });
     if (!quiz) {
-      quiz = await Quiz.findById(req.params.id);
+      quiz = await Quiz.findById(req.params.id).populate(
+        "results.descriptionId",
+        "title"
+      );
     }
 
     res.status(201).json(quiz);
@@ -83,6 +104,11 @@ router.put("/quiz/:id", validateCreateQuiz, async (req, res) => {
       })
     );
 
+    quiz.results = quiz.results.map((arr) => {
+      if (arr._id === "") arr._id = new ObjectId();
+      return arr;
+    });
+
     await Quiz.findByIdAndUpdate(req.params.id, quiz);
     res.json({ message: "Quiz updated successfully" });
   } catch (error) {
@@ -97,10 +123,24 @@ router.get("/quiz/paginate/:page", async (req, res) => {
     const page = parseInt(req.params.page);
 
     const skip = (page - 1) * pageSize;
-    const quizzes = await SubmittedQuizzes.aggregate([
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: pageSize },
+    const firstName = req.query.firstName;
+    const lastName = req.query.lastName;
+    const email = req.query.email;
+    const result = req.query.result;
+    const sort = req.query.sort == "newest" ? -1 : 1;
+
+    let filters = {};
+
+    if (firstName)
+      filters["user.firstName"] = { $regex: firstName, $options: "i" };
+    if (lastName)
+      filters["user.lastName"] = { $regex: lastName, $options: "i" };
+    if (lastName)
+      filters["user.lastName"] = { $regex: lastName, $options: "i" };
+    if (email) filters["user.email"] = { $regex: email, $options: "i" };
+    if (result) filters.result = { $regex: result, $options: "i" };
+
+    const countResult = await SubmittedQuizzes.aggregate([
       {
         $lookup: {
           from: "users",
@@ -110,6 +150,28 @@ router.get("/quiz/paginate/:page", async (req, res) => {
         },
       },
       { $unwind: "$user" },
+      { $match: filters },
+      { $sort: { createdAt: sort } },
+      { $count: "total" },
+    ]).exec();
+
+    const totalQuizzes = countResult.length > 0 ? countResult[0].total : 0;
+    const totalPages = Math.ceil(totalQuizzes / pageSize);
+
+    const quizzes = await SubmittedQuizzes.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      { $match: filters },
+      { $sort: { createdAt: sort } },
+      { $skip: skip },
+      { $limit: pageSize },
       {
         $project: {
           firstName: "$user.firstName",
@@ -120,10 +182,6 @@ router.get("/quiz/paginate/:page", async (req, res) => {
         },
       },
     ]).exec();
-
-    const totalQuizzes = await SubmittedQuizzes.countDocuments().exec();
-    const totalPages = Math.ceil(totalQuizzes / pageSize);
-
     res.json({ quizzes, totalPages });
   } catch (error) {
     console.log(error.message);
@@ -134,7 +192,10 @@ router.get("/quiz/paginate/:page", async (req, res) => {
 router.get("/quiz/result/:quizId", async (req, res) => {
   try {
     const quiz = await SubmittedQuizzes.findById(req.params.quizId)
-      .populate("userId", "_id firstName lastName email picture")
+      .populate(
+        "userId results.descriptionId",
+        "_id firstName lastName email picture title"
+      )
       .lean();
     if (!quiz) {
       res.status(404).json({ message: "Information Not found" });
@@ -156,7 +217,14 @@ router.post(
     try {
       const { _id, ...rest } = req.body;
       await TempQuiz.findOneAndDelete({ userId: req.user._id });
-      await SubmittedQuizzes.create({ ...rest, userId: req.user._id });
+      let result = "";
+      req.body.parameters.map((parameter) => {
+        let highest = parameter[0];
+        parameter.map((item) => item.value > highest.value && (highest = item));
+        result += `${highest.shortText}, `;
+      });
+      result = result.slice(0, -2) + ".";
+      await SubmittedQuizzes.create({ ...rest, userId: req.user._id, result });
       res.status(201).json({
         message:
           "Your test is done! Thanks for participating. Our representative will contact you soon.",
@@ -205,13 +273,23 @@ router.post("/quiz/send-email", async (req, res) => {
 
 router.post("/quiz/pdf", async (req, res) => {
   try {
-    const { result } = req.body;
-    const doc = new jsPDF('p', 'pt', 'a4', true);
+    const { _id, result, attach } = req.body;
+    const doc = new jsPDF("p", "pt", "a4", true);
     const mimeType = result.split(";")[0].split(":")[1];
-    doc.addImage(result, mimeType, 0, 0, doc.internal.pageSize.getWidth(), 0, undefined, 'FAST');
+    doc.addImage(
+      result,
+      mimeType,
+      0,
+      0,
+      doc.internal.pageSize.getWidth(),
+      0,
+      undefined,
+      "FAST"
+    );
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=result.pdf");
-    res.send(Buffer.from(doc.output('arraybuffer')));
+    res.send(Buffer.from(doc.output("arraybuffer")));
   } catch (error) {
     console.log(error.message);
     res.status(400).json({ error: error.message });

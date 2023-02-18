@@ -2,14 +2,16 @@ require("dotenv").config();
 const logger = require("morgan");
 const express = require("express");
 const mongoose = require("mongoose");
+const compression = require("compression");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 require("./config/passport-setup");
 const bodyParser = require("body-parser");
-const authRouter = require("./routes/auth.route");
+const authRouter = require("./routes/auth.routes");
 const quizRouter = require("./routes/quiz.routes");
 const superRouter = require("./routes/super.routes");
+const resultRouter = require("./routes/result.routes");
 
 const app = express();
 
@@ -23,8 +25,8 @@ mongoose
 
 app.use(
   cors({
-    origin: "https://quiz-ph.netlify.app",
-    // origin: ["http://localhost:3000", "http://localhost:55060"],
+    // origin: "https://quiz-ph.netlify.app",
+    origin: ["http://localhost:5000", "http://localhost:55060"],
     methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS",
     credentials: true,
   })
@@ -37,6 +39,8 @@ app.use(
     cookie: { secure: false },
   })
 );
+
+app.use(compression());
 app.use(bodyParser.json({ type: "application/json", limit: "10mb" }));
 app.use(express.static("pdf"));
 app.use(logger("dev"));
@@ -48,6 +52,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/api", authRouter);
 app.use("/api", quizRouter);
 app.use("/api", superRouter);
+app.use("/api", resultRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
