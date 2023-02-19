@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-const sendEmail = (to, subject, html, result) => {
+const sendEmail = (to, subject, html, result, description) => {
   let transporter = nodemailer.createTransport({
     host: "smtp.example.com",
     port: 587,
@@ -24,6 +24,10 @@ const sendEmail = (to, subject, html, result) => {
         encoding: "base64",
         cid: "result",
       },
+      {
+        filename: "result.pdf",
+        content: description,
+      }
     ],
   };
 

@@ -26,7 +26,7 @@ mongoose
 app.use(
   cors({
     // origin: "https://quiz-ph.netlify.app",
-    origin: ["http://localhost:5000", "http://localhost:55060"],
+    origin: ["http://localhost:5000", "http://localhost:3000"],
     methods: "GET,POST,PUT,DELETE,PATCH,OPTIONS",
     credentials: true,
   })

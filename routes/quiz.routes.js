@@ -8,8 +8,10 @@ const {
 const { Quiz, SubmittedQuizzes, TempQuiz } = require("../models/quiz.model");
 const ObjectId = require("mongoose").Types.ObjectId;
 const User = require("../models/user.model");
-const generateHTML = require("../utils/generateHTML");
-const { jsPDF } = require("jspdf");
+const { generateHTML, generateAttachment } = require("../utils/generateHTML");
+const { generatePDF } = require("../utils/generatePDF");
+const Result = require("../models/result.model");
+
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
   try {
@@ -221,9 +223,9 @@ router.post(
       req.body.parameters.map((parameter) => {
         let highest = parameter[0];
         parameter.map((item) => item.value > highest.value && (highest = item));
-        result += `${highest.shortText}, `;
+        result += highest.shortText;
       });
-      result = result.slice(0, -2) + ".";
+      // result = result.slice(0, -2) + ".";
       await SubmittedQuizzes.create({ ...rest, userId: req.user._id, result });
       res.status(201).json({
         message:
@@ -259,14 +261,23 @@ router.post(
 
 router.post("/quiz/send-email", async (req, res) => {
   try {
-    const quiz = await SubmittedQuizzes.findById(req.body._id);
+    const { _id, attach, result } = req.body;
+    const quiz = await SubmittedQuizzes.findById(_id);
     const user = await User.findById(quiz.userId);
-    const html = generateHTML(req.body.result, true);
+    const html = generateHTML({ result, isEmail: true });
+    let pdf;
 
-    sendMail(user.email, "Quiz Results", html, req.body.result);
+    if (!attach) {
+      const resultt =  await Result.findOne({ title: { $regex: quiz.result, $options: "i" } });
+      const attachment = generateAttachment({ description: resultt.description })
+      pdf = await generatePDF({ html: attachment });
+    }
+
+    sendMail(user.email, "Quiz Results", html, req.body.result, pdf);
 
     res.status(201).json({ message: "Email sent successfully" });
   } catch (error) {
+    console.log(error.message);
     res.status(400).json({ error: error.message });
   }
 });
@@ -274,22 +285,19 @@ router.post("/quiz/send-email", async (req, res) => {
 router.post("/quiz/pdf", async (req, res) => {
   try {
     const { _id, result, attach } = req.body;
-    const doc = new jsPDF("p", "pt", "a4", true);
-    const mimeType = result.split(";")[0].split(":")[1];
-    doc.addImage(
-      result,
-      mimeType,
-      0,
-      0,
-      doc.internal.pageSize.getWidth(),
-      0,
-      undefined,
-      "FAST"
-    );
+    let description;
+    if (attach) {
+      const submittedQuiz = await SubmittedQuizzes.findById(_id);
+      const desc = await Result.findOne({ title: { $regex: submittedQuiz.result, $options: "i" } });
+      description = desc.description;
+    }
+
+    const html = generateHTML({ result, isEmail: false, description });
+    const pdf = await generatePDF({ html });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", "attachment; filename=result.pdf");
-    res.send(Buffer.from(doc.output("arraybuffer")));
+    res.send(pdf);
   } catch (error) {
     console.log(error.message);
     res.status(400).json({ error: error.message });
