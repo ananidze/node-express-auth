@@ -12,7 +12,6 @@ const { generateHTML, generateAttachment } = require("../utils/generateHTML");
 const { generatePDF } = require("../utils/generatePDF");
 const Result = require("../models/result.model");
 
-
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
   try {
     const quiz = req.body;
@@ -223,9 +222,9 @@ router.post(
       req.body.parameters.map((parameter) => {
         let highest = parameter[0];
         parameter.map((item) => item.value > highest.value && (highest = item));
-        result += highest.shortText;
+        result = result.slice(0, -2) + ".";
       });
-      // result = result.slice(0, -2) + ".";
+      result = result.slice(0, -2) + ".";
       await SubmittedQuizzes.create({ ...rest, userId: req.user._id, result });
       res.status(201).json({
         message:
@@ -267,9 +266,15 @@ router.post("/quiz/send-email", async (req, res) => {
     const html = generateHTML({ result, isEmail: true });
     let pdf;
 
-    if (!attach) {
-      const resultt =  await Result.findOne({ title: { $regex: quiz.result, $options: "i" } });
-      const attachment = generateAttachment({ description: resultt.description })
+    if (attach) {
+      const regexp = quiz.result.replace(/[^a-zA-Z]/g, "");
+      console.log(regexp);
+      const resultt = await Result.findOne({
+        title: { $regex: regexp, $options: "i" },
+      });
+      const attachment = generateAttachment({
+        description: resultt.description,
+      });
       pdf = await generatePDF({ html: attachment });
     }
 
@@ -288,7 +293,10 @@ router.post("/quiz/pdf", async (req, res) => {
     let description;
     if (attach) {
       const submittedQuiz = await SubmittedQuizzes.findById(_id);
-      const desc = await Result.findOne({ title: { $regex: submittedQuiz.result, $options: "i" } });
+      const regexp = submittedQuiz.result.replace(/[^a-zA-Z]/g, "");
+      const desc = await Result.findOne({
+        title: { $regex: regexp, $options: "i" },
+      });
       description = desc.description;
     }
 
