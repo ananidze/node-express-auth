@@ -1,11 +1,18 @@
 const mongoose = require("mongoose");
 
 const resultSchema = new mongoose.Schema({
-  title: {
+  titleEn: {
     type: String,
     required: true,
   },
-  description: {
+  titleRu: {
+    type: String,
+    required: true,
+  },
+  descriptionEn: {
+    type: String,
+  },
+  descriptionRu: {
     type: String,
   },
 });

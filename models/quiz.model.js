@@ -56,6 +56,7 @@ const SubmittedQuizzes = mongoose.model(
   QuizSchema.add({
     userId: { type: mongoose.Types.ObjectId, required: true, ref: "User" },
     result: { type: String },
+    language: { type: String, required: true, select: false },
     questions: [[ExtendedQuestionSchema]],
   })
 );

@@ -222,7 +222,7 @@ router.post(
       req.body.parameters.map((parameter) => {
         let highest = parameter[0];
         parameter.map((item) => item.value > highest.value && (highest = item));
-        result = result.slice(0, -2) + ".";
+        result += `${highest.shortText}, `;
       });
       result = result.slice(0, -2) + ".";
       await SubmittedQuizzes.create({ ...rest, userId: req.user._id, result });
@@ -261,20 +261,20 @@ router.post(
 router.post("/quiz/send-email", async (req, res) => {
   try {
     const { _id, attach, result } = req.body;
-    const quiz = await SubmittedQuizzes.findById(_id);
+    const quiz = await SubmittedQuizzes.findById(_id).select("+language");
     const user = await User.findById(quiz.userId);
     const html = generateHTML({ result, isEmail: true });
     let pdf;
 
     if (attach) {
       const regexp = quiz.result.replace(/[^a-zA-Z]/g, "");
-      console.log(regexp);
       const resultt = await Result.findOne({
         title: { $regex: regexp, $options: "i" },
       });
-      const attachment = generateAttachment({
-        description: resultt.description,
-      });
+
+      const description =
+        quiz.language === "en" ? resultt.descriptionEn : resultt.descriptionRu;
+      const attachment = generateAttachment({ description });
       pdf = await generatePDF({ html: attachment });
     }
 
@@ -292,12 +292,18 @@ router.post("/quiz/pdf", async (req, res) => {
     const { _id, result, attach } = req.body;
     let description;
     if (attach) {
-      const submittedQuiz = await SubmittedQuizzes.findById(_id);
+      const submittedQuiz = await SubmittedQuizzes.findById(_id).select(
+        "+language"
+      );
       const regexp = submittedQuiz.result.replace(/[^a-zA-Z]/g, "");
       const desc = await Result.findOne({
         title: { $regex: regexp, $options: "i" },
       });
-      description = desc.description;
+
+      description =
+        submittedQuiz.language == "en"
+          ? desc.descriptionEn
+          : desc.descriptionRu;
     }
 
     const html = generateHTML({ result, isEmail: false, description });

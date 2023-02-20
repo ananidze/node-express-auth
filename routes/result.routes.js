@@ -3,8 +3,8 @@ const Result = require("../models/result.model");
 
 router.post("/result", async (req, res) => {
   try {
-    const { title, description } = req.body;
-    await Result.create({ title, description });
+    const { titleEn, titleRu, descriptionEn, descriptionRu } = req.body;
+    await Result.create({ titleEn, titleRu, descriptionEn, descriptionRu });
     res.status(201).json({ message: "Result created" });
   } catch (error) {
     console.log(error.message);
@@ -14,7 +14,7 @@ router.post("/result", async (req, res) => {
 
 router.get("/result", async (req, res) => {
   try {
-    const result = await Result.find().select("title");
+    const result = await Result.find().select("titleEn titleRu");
     if (!result) {
       return res.status(404).json({ message: "Result not found" });
     }
@@ -32,7 +32,10 @@ router.get("/result/paginate/:page", async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
 
     const skip = (page - 1) * limit;
-    const results = await Result.find().skip(skip).limit(limit);
+    const results = await Result.find()
+      .select("titleEn titleRu")
+      .skip(skip)
+      .limit(limit);
 
     const totalResults = await Result.countDocuments().exec();
     const totalPages = Math.ceil(totalResults / limit);
@@ -46,7 +49,9 @@ router.get("/result/paginate/:page", async (req, res) => {
 
 router.get("/result/:id", async (req, res) => {
   try {
-    const result = await Result.findById(req.params.id).select("description");
+    const result = await Result.findById(req.params.id).select(
+      "descriptionEn descriptionRu"
+    );
     if (!result) {
       return res.status(404).json({ message: "Result not found" });
     }
@@ -61,14 +66,43 @@ router.get("/result/:id", async (req, res) => {
 router.get("/results/:title?", async (req, res) => {
   try {
     const title = req.params.title || "";
+    const normalizedTitle = title
+      .toUpperCase()
+      .replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
     if (title.length === 0) {
-      const result = await Result.find().limit(10);
+      const result = await Result.find()
+        .select({
+          title: {
+            $cond: {
+              if: {
+                $regexMatch: { input: "$titleEn", regex: normalizedTitle },
+              },
+              then: "$titleEn",
+              else: "$titleRu",
+            },
+          },
+        })
+        .limit(10);
       return res.json(result);
     }
 
     const result = await Result.find({
-      title: { $regex: title, $options: "i" },
-    }).limit(10);
+      $or: [
+        { titleEn: { $regex: normalizedTitle, $options: "i" } },
+        { titleRu: { $regex: normalizedTitle, $options: "i" } },
+      ],
+    })
+      .select({
+        _id: 1,
+        title: {
+          $cond: {
+            if: { $regexMatch: { input: "$titleEn", regex: normalizedTitle } },
+            then: "$titleEn",
+            else: "$titleRu",
+          },
+        },
+      })
+      .limit(10);
 
     res.json(result);
   } catch (error) {
@@ -84,11 +118,8 @@ router.patch("/result/:id", async (req, res) => {
       return res.status(404).json({ message: "Result not found" });
     }
 
-    const { title, description } = req.body;
-    if (title) result.title = title;
-    if (description) result.description = description;
+    await result.updateOne({ ...req.body });
 
-    await result.save();
     res.json(result);
   } catch (error) {
     console.log(error.message);
