@@ -12,23 +12,31 @@ const sendEmail = (to, subject, html, result, description) => {
     },
   });
 
+  let attachments = [];
+
+  if (result) {
+    attachments.push({
+      filename: "result.png",
+      content: result.split("base64,")[1],
+      encoding: "base64",
+      cid: "result",
+    });
+  }
+
+  if (description) {
+    attachments.push({
+      filename: "result.pdf",
+      content: description,
+    });
+  }
+
+
   let mailOptions = {
     from: '"Your Name" <user@example.com>',
     to: to,
     subject: subject,
     html: html,
-    attachments: [
-      {
-        filename: "result.png",
-        content: result.split("base64,")[1],
-        encoding: "base64",
-        cid: "result",
-      },
-      {
-        filename: "result.pdf",
-        content: description,
-      }
-    ],
+    attachments: attachments,
   };
 
   transporter.sendMail(mailOptions, (error, info) => {

@@ -206,9 +206,10 @@ router.get("/quiz/result/:quizId", async (req, res) => {
     const quiz = await SubmittedQuizzes.findById(req.params.quizId)
       .populate(
         "userId results.descriptionId",
-        "_id firstName lastName email picture title"
+        "_id firstName lastName email picture title isPaid paidAmount"
       )
       .lean();
+
     if (!quiz) {
       res.status(404).json({ message: "Information Not found" });
     }
