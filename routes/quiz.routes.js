@@ -11,6 +11,7 @@ const User = require("../models/user.model");
 const { generateHTML, generateAttachment } = require("../utils/generateHTML");
 const { generatePDF } = require("../utils/generatePDF");
 const Result = require("../models/result.model");
+const PaymentDetails = require("../models/paymentdetails.model");
 
 router.post("/quiz", validateCreateQuiz, async (req, res) => {
   try {
@@ -179,7 +180,17 @@ router.get("/quiz/paginate/:page", async (req, res) => {
           lastName: "$user.lastName",
           email: "$user.email",
           createdAt: 1,
+          isPaid: 1,
+          paidAmount: 1,
           _id: 1,
+        },
+      },
+      {
+        $addFields: {
+          isPaid: { $cond: { if: "$isPaid", then: true, else: false } },
+          paidAmount: {
+            $cond: { if: "$isPaid", then: "$paidAmount", else: 0 },
+          },
         },
       },
     ]).exec();
@@ -225,7 +236,18 @@ router.post(
         result += `${highest.shortText}, `;
       });
       result = result.slice(0, -2) + ".";
-      await SubmittedQuizzes.create({ ...rest, userId: req.user._id, result });
+      const quiz = await SubmittedQuizzes.create({
+        ...rest,
+        userId: req.user._id,
+        result,
+      });
+
+      await PaymentDetails.create({
+        quizID: quiz._id,
+        userID: req.user._id,
+        price: quiz.price,
+      });
+
       res.status(201).json({
         message:
           "Your test is done! Thanks for participating. Our representative will contact you soon.",
