@@ -8,7 +8,7 @@ const {
 const { Quiz, SubmittedQuizzes, TempQuiz } = require("../models/quiz.model");
 const ObjectId = require("mongoose").Types.ObjectId;
 const User = require("../models/user.model");
-const { generateHTML, generateAttachment } = require("../utils/generateHTML");
+const { generateHTML, generateAttachment, paymentReminder } = require("../utils/generateHTML");
 const { generatePDF } = require("../utils/generatePDF");
 const Result = require("../models/result.model");
 const PaymentDetails = require("../models/paymentdetails.model");
@@ -249,6 +249,8 @@ router.post(
         price: quiz.price,
       });
 
+      sendPaymentRemainder(quiz._id);
+
       res.status(201).json({
         message:
           "Your test is done! Thanks for participating. Our representative will contact you soon.",
@@ -340,5 +342,29 @@ router.post("/quiz/pdf", async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+const sendPaymentRemainder = async (quizID) => {
+  try {
+    const BASE_URL = 'http://localhost:5000/payment';
+    const quiz = await SubmittedQuizzes.findById(quizID);
+    if (!quiz) {
+      throw new Error("Quiz not found")
+    }
+
+    const user = await User.findOne({ _id: quiz.userId });
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    const paymentDetails = await PaymentDetails.findOne({ userID: quiz.userId }).sort({ _id: -1 });
+
+    const html = paymentReminder({ name: user.firstName, amount: quiz.price, dueDate: paymentDetails.validUntil, url: `${BASE_URL}/${paymentDetails._id}` });
+
+    sendMail(user.email, "Payment Reminder", html)
+  } catch (error) {
+    console.log(error.message);
+    throw new Error(error.message)
+  }
+}
 
 module.exports = router;
