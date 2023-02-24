@@ -14,7 +14,7 @@ exports.generateHTML = ({ result, description, attach, isEmail }) => {
               .box-titles { padding-left: 20px; }
               .user-results-item{ padding-left: 20px;}
               .box-footer{padding-left: 20px;}
-              .description { padding-top: ${description ? 610 : 0}px; }
+              .description { padding-top: ${description ? 630 : 0}px; }
           </style>
       </head>
       <body>
@@ -22,8 +22,9 @@ exports.generateHTML = ({ result, description, attach, isEmail }) => {
           <div class="user-results">
               <div class="box-titles">
               </div>
-              <img src="${isEmail ? "cid:result" : `${result}`
-    }" style="width:100vw; object-fit: cover; max-width:1000px"/>
+              <img src="${
+                isEmail ? "cid:result" : `${result}`
+              }" style="width:100vw; object-fit: cover; max-width:1000px"/>
               <hr />
           </div>
           <div class="description">
@@ -53,9 +54,9 @@ exports.generateAttachment = ({ description }) => {
       </body>
       </html>
     `;
-}
+};
 
-exports.paymentReminder = ({ name, amount, dueDate, url }) => {
+exports.paymentReminder = ({ name, amount, dueDate, url, title }) => {
   return `
   <!DOCTYPE html
 	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -139,8 +140,7 @@ span,
 										<div class="f-fallback">
 											<h1 style="margin-top: 0; color: #333333; font-size: 22px; font-weight: bold; text-align: left;">Hi ${name},</h1>
 											<p style="margin: 0.4em 0 1.1875em; font-size: 16px; line-height: 1.625; color: #51545e;">
-												Thanks for using [Product Name]. This is an invoice
-												for your recent purchase.
+												This is an invoice for your recent purchase ${title}.
 											</p>
 											<table class="attributes" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 0 0 21px;">
 												<tr>
@@ -149,7 +149,7 @@ span,
 															<tr>
 																<td class="attributes_item" style="word-break: break-word; font-family: 'Nunito Sans', Helvetica, Arial, sans-serif; font-size: 16px; padding: 0;">
 																	<span class="f-fallback">
-																		<strong>Amount Due:</strong> ${amount}
+																		<strong>Amount Due:</strong> ${amount}$
 																	</span>
 																</td>
 															</tr>
@@ -177,7 +177,6 @@ span,
 													</td>
 												</tr>
 											</table>
-											<p style="margin: 0.4em 0 1.1875em; font-size: 16px; line-height: 1.625; color: #51545e;">Cheers, <br>The [Product Name] team</p>
 											<table class="body-sub" role="presentation" style="margin-top: 25px; padding-top: 25px; border-top: 1px solid #eaeaec;">
 												<tr>
 													<td style="word-break: break-word; font-family: 'Nunito Sans', Helvetica, Arial, sans-serif; font-size: 16px;">
@@ -215,7 +214,42 @@ span,
 		</tr>
 	</table>
 </body>
-
 </html> 
- `
-}
+ `;
+};
+
+exports.successfulPayment = ({ name, amount }) => {
+  return `
+	<!DOCTYPE html>
+<html>
+<head>
+	<title>Successful Payment</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+	<table style="width: 100%; max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; font-size: 16px; line-height: 1.5; background-color: #f6f6f6; padding: 20px;">
+		<tr>
+			<td style="background-color: #fff; padding: 30px;">
+				<h2 style="font-size: 24px; margin-bottom: 20px;">Successful Payment</h2>
+				<p>Dear ${name},</p>
+				<p>We are writing to confirm that your payment of ${amount}$ has been successfully processed. Thank you for your business!</p>
+				<p>Below are the details of your transaction:</p>
+				<ul style="list-style: none; padding: 0; margin: 20px 0;">
+					<li><strong>Amount:</strong> ${amount}$</li>
+				</ul>
+				<p>If you have any questions or concerns regarding your payment, please don't hesitate to contact us.</p>
+				<p>Thank you for choosing [Company Name]. We appreciate your business!</p>
+			</td>
+		</tr>
+		<tr>
+			<td style="text-align: center; padding-top: 20px;">
+				<p style="font-size: 14px; margin-bottom: 0;">[Company Name] | [Address], [City], [State] [Zip Code]</p>
+				<p style="font-size: 14px; margin-bottom: 0;"><a href="[Website URL]" style="color: #333; text-decoration: none;">[Website URL]</a> | [Phone Number]</p>
+			</td>
+		</tr>
+	</table>
+</body>
+</html>
+`;
+};

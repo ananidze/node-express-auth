@@ -2,6 +2,7 @@ const router = require("express").Router();
 const isAuthenticated = require("../middlewares/isAuthenticated");
 const PaymentDetails = require("../models/paymentdetails.model");
 const { SubmittedQuizzes } = require("../models/quiz.model");
+const { successfulPayment } = require("../utils/generateHTML");
 
 const User = require("../models/user.model");
 const sendEmail = require("../utils/mailer");
@@ -23,11 +24,31 @@ router.get("/payToken/:id", async (req, res) => {
       return res.status(404).json({ message: "Payment Details not found" });
     }
 
+    const user = await User.findById(paymentDetails.userID)
+      .select("firstName lastName createdAt")
+      .lean();
+
+    const quiz = await SubmittedQuizzes.findById(paymentDetails.quizID);
+
+    if (paymentDetails.validUntil < Date.now()) {
+      await paymentDetails.remove();
+
+      return res.json({
+        userID: paymentDetails.userID,
+        price: paymentDetails.price,
+        quizID: paymentDetails.quizID,
+        valid: false,
+        ...user,
+      });
+    }
+
     res.json({
       userID: paymentDetails.userID,
       price: paymentDetails.price,
       quizID: paymentDetails.quizID,
       valid: paymentDetails.validUntil > Date.now(),
+      title: quiz.title,
+      ...user,
     });
   } catch (error) {
     console.log(error.message);
@@ -37,7 +58,7 @@ router.get("/payToken/:id", async (req, res) => {
 
 router.post("/payment/success", async (req, res) => {
   try {
-    const { quizID, price } = req.body;
+    const { quizID, price, payID } = req.body;
     const quiz = await SubmittedQuizzes.findById(quizID);
     if (!quiz) {
       return res.status(404).json({ message: "Information not found" });
@@ -46,6 +67,16 @@ router.post("/payment/success", async (req, res) => {
     quiz.paidAmount = price;
     quiz.isPaid = true;
     quiz.save();
+
+    await PaymentDetails.findByIdAndDelete(payID);
+
+    const user = await User.findById(quiz.userId);
+
+    sendEmail(
+      user.email,
+      "Payment Successful",
+      successfulPayment({ name: user.firstName, amount: quiz.price })
+    );
 
     res.json({ message: "Payment Successful" });
   } catch (error) {

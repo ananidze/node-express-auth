@@ -8,7 +8,11 @@ const {
 const { Quiz, SubmittedQuizzes, TempQuiz } = require("../models/quiz.model");
 const ObjectId = require("mongoose").Types.ObjectId;
 const User = require("../models/user.model");
-const { generateHTML, generateAttachment, paymentReminder } = require("../utils/generateHTML");
+const {
+  generateHTML,
+  generateAttachment,
+  paymentReminder,
+} = require("../utils/generateHTML");
 const { generatePDF } = require("../utils/generatePDF");
 const Result = require("../models/result.model");
 const PaymentDetails = require("../models/paymentdetails.model");
@@ -208,6 +212,7 @@ router.get("/quiz/result/:quizId", async (req, res) => {
         "userId results.descriptionId",
         "_id firstName lastName email picture title isPaid paidAmount"
       )
+      .select("+language")
       .lean();
 
     if (!quiz) {
@@ -314,21 +319,19 @@ router.post("/quiz/send-email", async (req, res) => {
 
 router.post("/quiz/pdf", async (req, res) => {
   try {
-    const { _id, result, attach } = req.body;
+    const { _id, result, attach, language } = req.body;
     let description;
     if (attach) {
       const submittedQuiz = await SubmittedQuizzes.findById(_id).select(
         "+language"
       );
+
       const regexp = submittedQuiz.result.replace(/[^a-zA-Z]/g, "");
       const desc = await Result.findOne({
         title: { $regex: regexp, $options: "i" },
       });
 
-      description =
-        submittedQuiz.language == "en"
-          ? desc.descriptionEn
-          : desc.descriptionRu;
+      description = language == "en" ? desc.descriptionEn : desc.descriptionRu;
     }
 
     const html = generateHTML({ result, isEmail: false, description });
@@ -345,26 +348,34 @@ router.post("/quiz/pdf", async (req, res) => {
 
 const sendPaymentRemainder = async (quizID) => {
   try {
-    const BASE_URL = 'http://localhost:5000/payment';
+    const BASE_URL = "http://localhost:5000/payment";
     const quiz = await SubmittedQuizzes.findById(quizID);
     if (!quiz) {
-      throw new Error("Quiz not found")
+      throw new Error("Quiz not found");
     }
 
     const user = await User.findOne({ _id: quiz.userId });
     if (!user) {
-      throw new Error("User not found")
+      throw new Error("User not found");
     }
 
-    const paymentDetails = await PaymentDetails.findOne({ userID: quiz.userId }).sort({ _id: -1 });
+    const paymentDetails = await PaymentDetails.findOne({
+      userID: quiz.userId,
+    }).sort({ _id: -1 });
 
-    const html = paymentReminder({ name: user.firstName, amount: quiz.price, dueDate: paymentDetails.validUntil, url: `${BASE_URL}/${paymentDetails._id}` });
+    const html = paymentReminder({
+      name: user.firstName,
+      amount: quiz.price,
+      title: quiz.title,
+      dueDate: paymentDetails.validUntil,
+      url: `${BASE_URL}/${paymentDetails._id}`,
+    });
 
-    sendMail(user.email, "Payment Reminder", html)
+    sendMail(user.email, "Payment Reminder", html);
   } catch (error) {
     console.log(error.message);
-    throw new Error(error.message)
+    throw new Error(error.message);
   }
-}
+};
 
 module.exports = router;
