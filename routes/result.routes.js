@@ -88,15 +88,19 @@ router.get("/results/:title?", async (req, res) => {
 
     const result = await Result.find({
       $or: [
-        { titleEn: { $regex: normalizedTitle, $options: "i" } },
-        { titleRu: { $regex: normalizedTitle, $options: "i" } },
+        { titleEn: { $regex: new RegExp(normalizedTitle, "i") } },
+        { titleRu: { $regex: new RegExp(normalizedTitle, "i") } },
       ],
     })
       .select({
-        _id: 1,
         title: {
           $cond: {
-            if: { $regexMatch: { input: "$titleEn", regex: normalizedTitle } },
+            if: {
+              $regexMatch: {
+                input: { $toLower: "$titleEn" },
+                regex: new RegExp(normalizedTitle, "i"),
+              },
+            },
             then: "$titleEn",
             else: "$titleRu",
           },

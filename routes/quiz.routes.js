@@ -68,15 +68,28 @@ router.get("/quiz/user/paginate/:page", async (req, res) => {
 router.get("/quiz/:id", isAuthenticated, async (req, res) => {
   try {
     let quiz = await TempQuiz.findOne({ userId: req.user._id });
+    let sendquiz = null;
     if (!quiz) {
-      quiz = await Quiz.findById(req.params.id).populate(
-        "results.descriptionId",
-        "title"
-      );
+      quiz = await Quiz.findById(req.params.id)
+        .populate("results.descriptionId", "titleEn")
+        .lean();
+
+      sendQuiz = quiz.results.map((result) => {
+        return {
+          result: result.result,
+          descriptionId: {
+            _id: result.descriptionId._id,
+            title: result.descriptionId.titleEn,
+          },
+        };
+      });
+
+      delete quiz.results;
     }
 
-    res.status(201).json(quiz);
+    res.status(201).json({ ...quiz, results: sendQuiz });
   } catch (error) {
+    console.log(error.message);
     res.status(400).json({ error: error.message });
   }
 });
