@@ -7,17 +7,19 @@ exports.generatePDF = ({ html }) => {
                 headless: true,
                 args: [
                     "--headless",
-                    "--disable-gpu",
                     "--full-memory-crash-report",
                     "--unlimited-storage",
                     "--no-sandbox",
                     "--disable-setuid-sandbox",
                     "--disable-dev-shm-usage",
+                    "--disable-extensions",
+                    '--use-gl=egl'
                 ],
             });
 
             const page = await browser.newPage();
-            await page.setContent(html);
+            await page.setContent(html);    
+
             const pdf = await page.pdf({
                 format: "A4", margin: {
                     top: '70px',
@@ -27,10 +29,11 @@ exports.generatePDF = ({ html }) => {
                 },
             });
 
-            await browser.close();
-
             resolve(pdf);
+            
+            await browser.close();
         } catch (error) {
+            console.log(error)
             reject(error);
         }
     });
