@@ -106,6 +106,7 @@ exports.googleLogin = async (req, res, next) => {
 
 exports.googleRedirect = async (req, res) => {
   try {
+    const BASE_URL = process.env.BASE_URL;
     const { state } = req.query;
     const { returnTo } = JSON.parse(
       new Buffer.from(state, "base64").toString()
@@ -121,12 +122,12 @@ exports.googleRedirect = async (req, res) => {
 
       const encodedAccessToken = encodeURIComponent(tokens.accessToken);
       const encodedRefreshToken = encodeURIComponent(tokens.refreshToken);
-      return res.redirect(
-        `http://localhost:5000/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
-      );
       // return res.redirect(
-      //   `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
-      // );
+      //   `${BASE_URL}/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+      //   );
+      return res.redirect(
+        `https://quiz-ph.netlify.app/quiz/${returnTo}?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`
+      );
     }
   } catch (error) {
     res.status(401).json({ message: error.message });

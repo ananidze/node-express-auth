@@ -67,9 +67,23 @@ router.get("/quiz/user/paginate/:page", async (req, res) => {
 
 router.get("/quiz/:id", isAuthenticated, async (req, res) => {
   try {
-    let quiz = await TempQuiz.findOne({ userId: req.user._id });
-    let sendquiz = null;
-    if (!quiz) {
+    let quiz = await TempQuiz.findOne({ userId: req.user._id })
+                    .populate("results.descriptionId", "titleEn")
+                    .lean();
+    let sendQuiz = null;
+    if (quiz) {
+      sendQuiz = quiz.results.map((result) => {
+        return {
+          result: result.result,
+          descriptionId: {
+            _id: result.descriptionId._id,
+            title: result.descriptionId.titleEn,
+          },
+        };
+      });
+      delete quiz.results;
+      res.status(201).json({ ...quiz, results: sendQuiz });
+    } else {
       quiz = await Quiz.findById(req.params.id)
         .populate("results.descriptionId", "titleEn")
         .lean();
@@ -83,11 +97,10 @@ router.get("/quiz/:id", isAuthenticated, async (req, res) => {
           },
         };
       });
-
       delete quiz.results;
-    }
 
-    res.status(201).json({ ...quiz, results: sendQuiz });
+      res.status(201).json({ ...quiz, results: sendQuiz });
+    }
   } catch (error) {
     console.log(error.message);
     res.status(400).json({ error: error.message });
@@ -280,6 +293,7 @@ router.post(
   }
 );
 
+
 router.post(
   "/quiz/temp",
   validateSubmitQuiz,
@@ -291,15 +305,46 @@ router.post(
 
       quiz.userId = userId;
 
-      await TempQuiz.findOneAndUpdate({ userId }, quiz, { upsert: true });
+      let tempQuiz = await TempQuiz.findOne({ userId });
 
-      res.send(200);
+      if (tempQuiz) {
+        tempQuiz.set(quiz);
+      } else {
+        tempQuiz = new TempQuiz(quiz);
+      }
+
+      await tempQuiz.save();
+
+      res.sendStatus(200);
     } catch (error) {
       console.log(error.message);
       res.status(500).json({ message: "Something Went Wrong" });
     }
   }
 );
+
+
+
+// router.post(
+//   "/quiz/temp",
+//   validateSubmitQuiz,
+//   isAuthenticated,
+//   async (req, res) => {
+//     try {
+//       const userId = req.user._id;
+//       const quiz = req.body;
+
+//       quiz.userId = userId;
+
+//       await TempQuiz.findOneAndUpdate({ userId }, quiz, { upsert: true, new: true });
+
+//       res.send(200);
+//     } catch (error) {
+//       console.log(error.message);
+//       res.status(500).json({ message: "Something Went Wrong" });
+//     }
+//   }
+// );
 
 router.post("/quiz/send-email", async (req, res) => {
   try {
@@ -361,7 +406,8 @@ router.post("/quiz/pdf", async (req, res) => {
 
 const sendPaymentRemainder = async (quizID) => {
   try {
-    const BASE_URL = "http://localhost:5000/payment";
+    const BASE_URL = process.env.BASE_URL;
+    // const BASE_URL = "http://localhost:5000/payment";
     const quiz = await SubmittedQuizzes.findById(quizID);
     if (!quiz) {
       throw new Error("Quiz not found");
@@ -381,7 +427,7 @@ const sendPaymentRemainder = async (quizID) => {
       amount: quiz.price,
       title: quiz.title,
       dueDate: paymentDetails.validUntil,
-      url: `${BASE_URL}/${paymentDetails._id}`,
+      url: `${BASE_URL}/payment/${paymentDetails._id}`,
     });
 
     sendMail(user.email, "Payment Reminder", html);

@@ -56,7 +56,7 @@ const SubmittedQuizzes = mongoose.model(
   QuizSchema.add({
     userId: { type: mongoose.Types.ObjectId, required: true, ref: "User" },
     result: { type: String },
-    language: { type: String, required: true, select: false },
+    language: { type: String, select: false },
     paidAmount: { type: Number, default: 0 },
     isPaid: { type: Boolean, default: false },
     questions: [[ExtendedQuestionSchema]],
